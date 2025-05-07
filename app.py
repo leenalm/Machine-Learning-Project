@@ -1,64 +1,52 @@
 import streamlit as st
 import pickle
-import numpy as np
 import os
+from preprocessing import preprocess_input
 
 # Load model and scaler
 current_dir = os.path.dirname(__file__)
 model_path = os.path.join(current_dir, "svm_model.pkl")
-scaler_path = os.path.join(current_dir, "scaler.pkl")
 
 with open(model_path, "rb") as f:
     model = pickle.load(f)
 
-with open(scaler_path, "rb") as f:
-    scaler = pickle.load(f)
+# Set title
+st.title("Employee Attrition Prediction App")
+st.markdown("Enter employee details to predict whether the employee is likely to **stay** or **leave** the company.")
 
-# App title
-st.title(" Employee Attrition Prediction")
-st.markdown("Enter employee details to predict whether the employee is likely to **stay or leave**.")
+# Sidebar input fields for all numerical features used in training
+st.sidebar.header("Enter Employee Details")
 
-# Sidebar for user input
-st.sidebar.header(" Enter Employee Details")
+# Collect inputs
+user_input = {
+    "Age": st.sidebar.slider("Age", 18, 60, 30),
+    "DailyRate": st.sidebar.slider("Daily Rate", 100, 1500, 800),
+    "DistanceFromHome": st.sidebar.slider("Distance From Home (km)", 1, 30, 10),
+    "Education": st.sidebar.slider("Education (1=Below College, 5=Doctor)", 1, 5, 3),
+    "EmployeeCount": 1,  # Constant in dataset
+    "EmployeeNumber": st.sidebar.slider("Employee Number", 1, 2068, 1001),
+    "EnvironmentSatisfaction": st.sidebar.slider("Environment Satisfaction (1=Low, 4=High)", 1, 4, 3),
+    "HourlyRate": st.sidebar.slider("Hourly Rate", 30, 100, 60),
+    "JobInvolvement": st.sidebar.slider("Job Involvement (1=Low, 4=High)", 1, 4, 3),
+    "JobLevel": st.sidebar.slider("Job Level", 1, 5, 2),
+    "RelationshipSatisfaction": st.sidebar.slider("Relationship Satisfaction (1=Low, 4=High)", 1, 4, 3),
+    "StandardHours": 80,  # Constant in dataset
+    "StockOptionLevel": st.sidebar.slider("Stock Option Level", 0, 3, 1),
+    "TotalWorkingYears": st.sidebar.slider("Total Working Years", 0, 40, 10),
+    "TrainingTimesLastYear": st.sidebar.slider("Training Times Last Year", 0, 6, 3),
+    "WorkLifeBalance": st.sidebar.slider("Work-Life Balance (1=Bad, 4=Best)", 1, 4, 3),
+    "YearsAtCompany": st.sidebar.slider("Years at Company", 0, 40, 5),
+    "YearsInCurrentRole": st.sidebar.slider("Years in Current Role", 0, 18, 4),
+    "YearsSinceLastPromotion": st.sidebar.slider("Years Since Last Promotion", 0, 15, 2),
+    "YearsWithCurrManager": st.sidebar.slider("Years With Current Manager", 0, 17, 3)
+}
 
-# Widgets for 10 input features
-Age = st.sidebar.slider("Age", 18, 60, 30)
-DistanceFromHome = st.sidebar.slider("Distance From Home (km)", 1, 30, 10)
-MonthlyIncome = st.sidebar.number_input("Monthly Income (USD)", 1000, 20000, 5000, step=500)
-JobSatisfaction = st.sidebar.slider("Job Satisfaction (1 = Low, 4 = High)", 1, 4, 3)
-YearsAtCompany = st.sidebar.slider("Years at Company", 0, 40, 5)
-TotalWorkingYears = st.sidebar.slider("Total Working Years", 0, 40, 10)
-NumCompaniesWorked = st.sidebar.slider("Number of Companies Worked", 0, 10, 2)
-OverTime = st.sidebar.selectbox("OverTime", ["Yes", "No"])
-EnvironmentSatisfaction = st.sidebar.slider("Environment Satisfaction (1 = Low, 4 = High)", 1, 4, 3)
-WorkLifeBalance = st.sidebar.slider("Work-Life Balance (1 = Low, 4 = High)", 1, 4, 3)
+# When user clicks "Predict"
+if st.button("Predict Attrition"):
+    scaled_input = preprocess_input(user_input)
+    prediction = model.predict(scaled_input)[0]
 
-# Convert categorical value to numeric
-OverTime_binary = 1 if OverTime == "Yes" else 0
-
-# Combine into array
-input_data = np.array([[Age, DistanceFromHome, MonthlyIncome, JobSatisfaction,
-                        YearsAtCompany, TotalWorkingYears, NumCompaniesWorked,
-                        OverTime_binary, EnvironmentSatisfaction, WorkLifeBalance]])
-
-# Scale input
-input_scaled = scaler.transform(input_data)
-
-# Predict on button click
-if st.button(" Predict Attrition"):
-    prediction = model.predict(input_scaled)
-    
-    # Optional: show confidence if model supports probability
-    if hasattr(model, "predict_proba"):
-        probability = model.predict_proba(input_scaled)[0][1] * 100  # probability of leaving
-    else:
-        probability = None
-
-    if prediction[0] == 1:
+    if prediction == 1:
         st.error(" This employee is **likely to leave** the company.")
-        if probability:
-            st.write(f"Attrition Probability: **{probability:.2f}%**")
     else:
-        st.success(" This employee is **likely to stay** at the company.")
-        if probability:
-            st.write(f"Attrition Probability: **{100 - probability:.2f}%**")
+        st.success("This employee is **likely to stay** at the company.")
