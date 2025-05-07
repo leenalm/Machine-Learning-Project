@@ -4,15 +4,18 @@ import os
 from preprocessing import preprocess_input
 
 # Load model
-model_path = os.path.join(os.path.dirname(__file__), "svm_model.pkl")
+current_dir = os.path.dirname(__file__)
+model_path = os.path.join(current_dir, "svm_model.pkl")
+
 with open(model_path, "rb") as f:
     model = pickle.load(f)
 
+# App Title
 st.title("Employee Attrition Prediction App")
-st.markdown("Enter employee details to predict whether the employee is likely to **stay** or **leave** the company.")
+st.markdown("Enter employee details to predict if the employee will likely **stay** or **leave**.")
 
-st.sidebar.header("Enter Employee Details")
-
+# Sidebar inputs
+st.sidebar.header("Employee Details")
 user_input = {
     "Age": st.sidebar.slider("Age", 18, 60, 30),
     "DailyRate": st.sidebar.slider("Daily Rate", 100, 1500, 800),
@@ -36,6 +39,7 @@ user_input = {
     "YearsWithCurrManager": st.sidebar.slider("Years With Current Manager", 0, 17, 3)
 }
 
+# Prediction
 if st.button("Predict Attrition"):
     scaled_input = preprocess_input(user_input)
     prediction = model.predict(scaled_input)[0]
@@ -44,4 +48,5 @@ if st.button("Predict Attrition"):
         st.error("This employee is **likely to leave** the company.")
     else:
         st.success("This employee is **likely to stay** at the company.")
+
 
