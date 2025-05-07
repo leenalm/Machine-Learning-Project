@@ -1,18 +1,19 @@
+# train_model.py
+
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.svm import SVC
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import accuracy_score, classification_report
 import pickle
 
-# Load dataset
+# Load the dataset
 data = pd.read_csv("WA_Fn-UseC_-HR-Employee-Attrition.csv")
 
-# Encode the target
+# Encode categorical features (just the target)
 data['Attrition'] = data['Attrition'].map({'Yes': 1, 'No': 0})
 
-# Define the numerical features you'll use (same as Streamlit)
+# Define the numerical features to use
 NUMERICAL_FEATURES = [
     "Age", "DailyRate", "DistanceFromHome", "Education", "EmployeeCount",
     "EmployeeNumber", "EnvironmentSatisfaction", "HourlyRate", "JobInvolvement",
@@ -21,6 +22,32 @@ NUMERICAL_FEATURES = [
     "YearsAtCompany", "YearsInCurrentRole", "YearsSinceLastPromotion",
     "YearsWithCurrManager"
 ]
+
+# Subset the data
+X = data[NUMERICAL_FEATURES]
+y = data["Attrition"]
+
+# Train/test split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Scale the numerical features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+
+# Train the model
+svm = SVC()
+param_grid = {"C": [0.1, 1, 10], "kernel": ["linear", "rbf"]}
+grid = GridSearchCV(svm, param_grid, cv=5)
+grid.fit(X_train_scaled, y_train)
+
+# Save the best model
+with open("svm_model.pkl", "wb") as f:
+    pickle.dump(grid.best_estimator_, f)
+
+# Save the scaler
+with open("scaler.pkl", "wb") as f:
+    pickle.dump(scaler, f)
+
 
 X = data[NUMERICAL_FEATURES]
 y = data['Attrition']
