@@ -1,18 +1,18 @@
+# preprocessing.py
 import numpy as np
 import pickle
 
-# Load saved objects
+# Load the scaler and model
 with open("scaler.pkl", "rb") as f:
     scaler = pickle.load(f)
 
-with open("features.pkl", "rb") as f:
-    FEATURES = pickle.load(f)
+with open("svm_model.pkl", "rb") as f:
+    model = pickle.load(f)
 
-def preprocess_input(user_input: dict):
-    """
-    Prepares the input using all features, in correct order.
-    """
-    input_values = [user_input[feature] for feature in FEATURES]
-    input_array = np.array(input_values).reshape(1, -1)
-    return scaler.transform(input_array)
+def preprocess_input(user_input_df):
+    # Ensure the input is in the same format and column order
+    input_array = user_input_df.values.reshape(1, -1)  # assume DataFrame with right columns
+    scaled_array = scaler.transform(input_array)
+    return scaled_array, model
+
 
