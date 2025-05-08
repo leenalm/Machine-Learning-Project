@@ -1,55 +1,71 @@
-# app.py
 import streamlit as st
 import pandas as pd
-from preprocessing import preprocess_input
+import pickle
+from preprocessing import preprocess_data
 
-st.title("Employee Attrition Predictor")
+# Load the trained model and scaler
+with open('svm_model.pkl', 'rb') as model_file:
+    svm_model = pickle.load(model_file)
 
-# Collect input
-satisfaction_level = st.slider("Satisfaction Level", 0.0, 1.0, 0.5)
-last_evaluation = st.slider("Last Evaluation", 0.0, 1.0, 0.5)
-number_project = st.slider("Number of Projects", 2, 7, 4)
-average_monthly_hours = st.slider("Average Monthly Hours", 90, 310, 160)
-time_spent = st.slider("Time Spent at Company (Years)", 1, 10, 3)
-work_accident = st.selectbox("Work Accident", [0, 1])
-promotion_last_5years = st.selectbox("Promotion in Last 5 Years", [0, 1])
-dept = st.selectbox("Department", ['sales', 'technical', 'support', 'IT', 'product_mng', 'marketing', 'RandD', 'accounting', 'hr', 'management'])
-salary = st.selectbox("Salary", ['low', 'medium', 'high'])
+with open('scaler.pkl', 'rb') as scaler_file:
+    scaler = pickle.load(scaler_file)
 
-# Manual one-hot encoding (you can also use same encoder used during training)
-dept_dummies = [1 if dept == d else 0 for d in ['IT', 'RandD', 'accounting', 'hr', 'management', 'marketing', 'product_mng', 'sales', 'support', 'technical']]
-salary_dummies = [1 if salary == s else 0 for s in ['high', 'low', 'medium']]
+# Streamlit UI elements to take user input for all 34 features
+st.title("Employee Attrition Prediction")
 
-user_input = [
-    satisfaction_level,
-    last_evaluation,
-    number_project,
-    average_monthly_hours,
-    time_spent,
-    work_accident,
-    promotion_last_5years,
-    *dept_dummies,
-    *salary_dummies
-]
+# Create input fields for all features
+features = {
+    'Age': st.number_input("Age", min_value=18, max_value=100, value=30),
+    'BusinessTravel': st.selectbox("BusinessTravel", [0, 1, 2]),
+    'DailyRate': st.number_input("DailyRate", min_value=0, value=500),
+    'Department': st.selectbox("Department", [0, 1, 2]),
+    'DistanceFromHome': st.number_input("DistanceFromHome", min_value=0, value=5),
+    'Education': st.number_input("Education", min_value=1, max_value=5, value=3),
+    'EducationField': st.selectbox("EducationField", [0, 1, 2, 3, 4]),
+    'EmployeeCount': st.number_input("EmployeeCount", min_value=1, value=1),
+    'EmployeeNumber': st.number_input("EmployeeNumber", min_value=1, value=1000),
+    'EnvironmentSatisfaction': st.selectbox("EnvironmentSatisfaction", [1, 2, 3, 4]),
+    'Gender': st.selectbox("Gender", [0, 1]),
+    'HourlyRate': st.number_input("HourlyRate", min_value=10, value=20),
+    'JobInvolvement': st.selectbox("JobInvolvement", [1, 2, 3, 4]),
+    'JobLevel': st.number_input("JobLevel", min_value=1, max_value=5, value=2),
+    'JobRole': st.selectbox("JobRole", [0, 1, 2, 3, 4, 5, 6]),
+    'JobSatisfaction': st.selectbox("JobSatisfaction", [1, 2, 3, 4]),
+    'MaritalStatus': st.selectbox("MaritalStatus", [0, 1, 2]),
+    'MonthlyIncome': st.number_input("MonthlyIncome", min_value=1000, value=5000),
+    'MonthlyRate': st.number_input("MonthlyRate", min_value=1000, value=15000),
+    'NumCompaniesWorked': st.number_input("NumCompaniesWorked", min_value=0, value=3),
+    'Over18': st.selectbox("Over18", [0, 1]),
+    'OverTime': st.selectbox("OverTime", [0, 1]),
+    'PercentSalaryHike': st.number_input("PercentSalaryHike", min_value=0, value=10),
+    'PerformanceRating': st.selectbox("PerformanceRating", [1, 2, 3, 4]),
+    'RelationshipSatisfaction': st.selectbox("RelationshipSatisfaction", [1, 2, 3, 4]),
+    'StandardHours': st.number_input("StandardHours", min_value=1, value=40),
+    'StockOptionLevel': st.number_input("StockOptionLevel", min_value=0, max_value=3, value=1),
+    'TotalWorkingYears': st.number_input("TotalWorkingYears", min_value=0, value=10),
+    'TrainingTimesLastYear': st.number_input("TrainingTimesLastYear", min_value=0, value=1),
+    'WorkLifeBalance': st.selectbox("WorkLifeBalance", [1, 2, 3, 4]),
+    'YearsAtCompany': st.number_input("YearsAtCompany", min_value=0, value=5),
+    'YearsInCurrentRole': st.number_input("YearsInCurrentRole", min_value=0, value=3),
+    'YearsSinceLastPromotion': st.number_input("YearsSinceLastPromotion", min_value=0, value=2),
+    'YearsWithCurrManager': st.number_input("YearsWithCurrManager", min_value=0, value=2),
+}
 
-columns = [
-    "satisfaction_level", "last_evaluation", "number_project", "average_monthly_hours",
-    "time_spent", "work_accident", "promotion_last_5years",
-    'dept_IT', 'dept_RandD', 'dept_accounting', 'dept_hr', 'dept_management', 'dept_marketing',
-    'dept_product_mng', 'dept_sales', 'dept_support', 'dept_technical',
-    'salary_high', 'salary_low', 'salary_medium'
-]
+# Convert input into DataFrame
+input_data = pd.DataFrame([features])
 
-user_input_df = pd.DataFrame([user_input], columns=columns)
+# Preprocess the input data (scaling, encoding, etc.)
+processed_data = preprocess_data(input_data)
 
-if st.button("Predict"):
-    scaled_input, model = preprocess_input(user_input_df)
-    prediction = model.predict(scaled_input)[0]
+# Predict the Attrition using the SVM model
+prediction = svm_model.predict(processed_data)
 
-    if prediction == 1:
-        st.error("This employee is **likely to leave**.")
-    else:
-        st.success("This employee is **likely to stay**.")
+# Display the prediction result
+if prediction[0] == 1:
+    st.write("Prediction: Employee is likely to leave.")
+else:
+    st.write("Prediction: Employee is likely to stay.")
+
 
 
 
